@@ -53,18 +53,18 @@ Module.register('MMM-Gestures', {
 			if (payload == 'LEFT') {
 				Log.info('Incrementinging page after having received LEFT gesture.');
 				notification = "PAGE_INCREMENT";
-				if (this.pageNumber > 0) {
-					this.pageNumber--;
-				} else {
-					this.pageNumber = this.maxPageNumber;
-				}
-			} else if (payload == 'RIGHT') {
-				Log.info('Decrementing page after having received RIGHT gesture.');
-				notification = "PAGE_DECREMENT";
 				if (this.pageNumber < this.maxPageNumber) {
 					this.pageNumber++;
 				} else {
 					this.pageNumber = 0;
+				}
+			} else if (payload == 'RIGHT') {
+				Log.info('Decrementing page after having received RIGHT gesture.');
+				notification = "PAGE_DECREMENT";
+				if (this.pageNumber > 0) {
+					this.pageNumber--;
+				} else {
+					this.pageNumber = this.maxPageNumber;
 				}
 			} else {
 				Log.info('Not handling received gesture in this module directly:');
