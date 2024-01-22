@@ -13,7 +13,7 @@
 /*
   Arduino Wire library, included by default
   https://www.arduino.cc/en/Reference/Wire
-*/ 
+*/
 #include <Wire.h>
 
 /*
@@ -32,7 +32,7 @@
   * input 1: APDS-9960 on digital pin 2 (interrupt) + I2C (SDA on pin A4, SCL on pin A5) + GND & VCC (3.3V)
   * input 2: GP2Y0A21YK on analog pin 0 (analog) + GND & VCC (5V)
   * output: serial out on USB
-  
+
   In order to compile you'll need to copy the libraries from above to Arduino's library folder.
 
   Created 2016-08-24 by Thomas Bachmann (https://github.com/thobach)
@@ -49,12 +49,10 @@
 // #define DEFAULT_GGAIN           GGAIN_1X // was: GGAIN_4X
 // #define DEFAULT_GLDRIVE         LED_DRIVE_25MA // was: LED_DRIVE_100MA
 
-
 // PINS
 
 // gesture sensor interrup pin
-#define APDS9960_INT    2 // Needs to be an interrupt pin
-
+#define APDS9960_INT 2 // Needs to be an interrupt pin
 
 // GLOBAL VARIABLES
 
@@ -65,13 +63,12 @@ DistanceGP2Y0A21YK distanceSensor;
 SparkFun_APDS9960 gestureSensor = SparkFun_APDS9960();
 
 // distance is calculated on a running median using the last 8 values
-RunningMedian distanceMedian = RunningMedian(8);
-
+RunningMedian distanceMedian = RunningMedian(48);
 
 // CONSTANTS
 
 // input voltage area from which a person is considered in front of the mirror
-// full input voltage area 0-1023, output voltage curve: 
+// full input voltage area 0-1023, output voltage curve:
 // https://cdn.sparkfun.com//assets/parts/1/8/4/IRSensor-3.jpg
 
 // the higher the value (voltage), the closer one is to the mirror
@@ -80,7 +77,6 @@ RunningMedian distanceMedian = RunningMedian(8);
 int inUseThreshold = 100; // 100/1023 * 5V = 0.5 => (less than 5cm or) less than 60cm
 // away / idle: more than about 80cm away
 int awayThreshold = 80; // 80/1023 * 5V = 0.4V => (less than 2cm or) more than 80cm
-
 
 // STATE
 
@@ -94,166 +90,142 @@ int isr_flag = 0;
 int countAway = 0;
 
 // setup function is called on boot
-void setup() {
-
-  // init gesture sensor
-
+void setup()
+{
   // Set interrupt pin as input for gesture sensor
   pinMode(APDS9960_INT, INPUT);
-
   Serial.begin(9600);
-
   // Initialize gesture sensor APDS-9960 (configure I2C and initial values)
-  if (gestureSensor.init()) {
-
+  if (gestureSensor.init())
+  {
     Serial.println(F("INFO: APDS-9960 initialization complete"));
-
     attachInterrupt(digitalPinToInterrupt(APDS9960_INT), interruptRoutine, FALLING);
-
-  } else {
-
-    Serial.println(F("ERROR: Something went wrong during APDS-9960 init!"));
-
   }
-
+  else
+  {
+    Serial.println(F("ERROR: Something went wrong during APDS-9960 init!"));
+  }
   // start listening to distance sensor
   distanceSensor.begin(A0);
   int initDistance = distanceSensor.getDistanceRaw();
-
   Serial.print(F("INFO: Distance sensor listening, initial distance: "));
   Serial.println(initDistance);
-
 }
 
 // main loop that is called repeatedly after setup
-void loop() {
-
+void loop()
+{
   // enable gesture sensor if distance sensor shows someone in front of the mirror (distance > 100)
-  if (!inUse && distanceMedian.getMedian() > inUseThreshold) {
-
+  if (!inUse && distanceMedian.getMedian() > inUseThreshold)
+  {
     activateGestureSensorAndReportMirrorUse();
-
   }
   // disable gesture sensor if nobody is on front of mirror (distance < 80)
-  else if (inUse && distanceMedian.getMedian() < awayThreshold) {
-
+  else if (inUse && distanceMedian.getMedian() < awayThreshold)
+  {
     disableGestureSensorAndReportMirrorIdle();
-
   }
-
   // get distance from distance sensor
   // range 0-1023
   int distanceRaw = distanceSensor.getDistanceRaw();
-  
   // only consider running median of last 8 values
   distanceMedian.add(distanceRaw);
-
   // get gestures
-  if (inUse) {
-
+  if (inUse)
+  {
     // check if there was an interrupt in the meantime
     handleInterrupt();
-
   }
-  // wait before checking distance again and activate gesture sensor
-  else {
-
-    // wait 50ms until next measurement
+  else
+  {
+    // wait before checking distance again and activate gesture sensor
     delay(50);
-
   }
-
 }
 
-void activateGestureSensorAndReportMirrorUse() {
-
+void activateGestureSensorAndReportMirrorUse()
+{
   countAway = 0;
   inUse = true;
   Serial.println(F("Person: PRESENT"));
-
-  if (gestureSensor.enableGestureSensor(true)) {
+  if (gestureSensor.enableGestureSensor(true))
+  {
+    gestureSensor.setLEDDrive(LED_DRIVE_50MA);
+    gestureSensor.setGestureGain(GGAIN_1X);
     Serial.println(F("INFO: Gesture sensor is now running"));
-  } else {
+  }
+  else
+  {
     Serial.println(F("ERROR: Something went wrong during gesture sensor enable!"));
   }
-
 }
 
-void disableGestureSensorAndReportMirrorIdle() {
-
+void disableGestureSensorAndReportMirrorIdle()
+{
   countAway++;
-
-  if (countAway > 100) {
-
+  if (countAway > 100)
+  {
     inUse = false;
     Serial.println(F("Person: AWAY"));
-
-    if (gestureSensor.disableGestureSensor()) {
+    if (gestureSensor.disableGestureSensor())
+    {
       Serial.println(F("INFO: Gesture sensor is now disabled"));
-    } else {
+    }
+    else
+    {
       Serial.println(F("ERROR: Something went wrong during gesture sensor disable!"));
     }
-
   }
-
 }
 
 // check for interrupt, if one is present it means gesture is present,
 // in that case stop interrupt handler, handle gesture and attach
 // interrupt handler again
-void handleInterrupt() {
-
+void handleInterrupt()
+{
   // if interrupt was set, read and print gesture, reset interrupt flag
-  if (isr_flag == 1) {
-
+  if (isr_flag == 1)
+  {
     detachInterrupt(digitalPinToInterrupt(APDS9960_INT));
-
     handleGesture();
-
     isr_flag = 0;
-
     attachInterrupt(digitalPinToInterrupt(APDS9960_INT), interruptRoutine, FALLING);
-
   }
-
 }
 
 // interrupt function for interrupt pin that APDS9960 is attached to
-void interruptRoutine() {
-
+void interruptRoutine()
+{
   isr_flag = 1;
-
 }
 
 // on gestor sensor interrupt send serial message with gesture
-void handleGesture() {
-
-  if (gestureSensor.isGestureAvailable()) {
-
-    switch (gestureSensor.readGesture()) {
-      case DIR_UP:
-        Serial.println(F("Gesture: UP"));
-        break;
-      case DIR_DOWN:
-        Serial.println(F("Gesture: DOWN"));
-        break;
-      case DIR_LEFT:
-        Serial.println(F("Gesture: LEFT"));
-        break;
-      case DIR_RIGHT:
-        Serial.println(F("Gesture: RIGHT"));
-        break;
-      case DIR_NEAR:
-        Serial.println(F("Gesture: NEAR"));
-        break;
-      case DIR_FAR:
-        Serial.println(F("Gesture: FAR"));
-        break;
-      default:
-        Serial.println(F("Gesture: NONE"));
+void handleGesture()
+{
+  if (gestureSensor.isGestureAvailable())
+  {
+    switch (gestureSensor.readGesture())
+    {
+    case DIR_UP:
+      Serial.println(F("Gesture: UP"));
+      break;
+    case DIR_DOWN:
+      Serial.println(F("Gesture: DOWN"));
+      break;
+    case DIR_LEFT:
+      Serial.println(F("Gesture: LEFT"));
+      break;
+    case DIR_RIGHT:
+      Serial.println(F("Gesture: RIGHT"));
+      break;
+    case DIR_NEAR:
+      Serial.println(F("Gesture: NEAR"));
+      break;
+    case DIR_FAR:
+      Serial.println(F("Gesture: FAR"));
+      break;
+    default:
+      Serial.println(F("Gesture: NONE"));
     }
-
   }
-
 }
-

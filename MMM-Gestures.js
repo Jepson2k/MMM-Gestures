@@ -16,34 +16,22 @@
  */
 Module.register('MMM-Gestures', {
 
-	// init connection to server role and setup compliment module hiding/showing upon
-	// events
-	start: function (){
-
-		Log.info('MMM-Gestures start invoked.');
-
-		// notifications are only received once the client (this file) sends the first message to the server (node_helper.js)
-		this.sendSocketNotification('INIT');
-
+	// Default module config.
+	defaults: {
+		pages: 3,
 	},
 
-	// hide compliment module by default, until PRESENT gesture is received
-	notificationReceived: function(notification, payload, sender) {
+	// init connection to server role and setup compliment module hiding/showing upon
+	// events
+	start: function () {
 
-		// hide compliment module by default after all modules were loaded
-		if (notification == 'ALL_MODULES_STARTED'){
-
-			var complimentModules = MM.getModules().withClass('compliments');
-
-			if(complimentModules && complimentModules.length == 1){
-
-				Log.info('Hiding compliment module since all modules were loaded.');
-				var compliment = complimentModules[0];
-					compliment.hide();
-
-			}
-
+		Log.info('MMM-Gestures start invoked.');
+		this.pageNumber = 0;
+		if (this.config.pages) {
+			this.maxPageNumber = this.config.pages - 1;
 		}
+		// notifications are only received once the client (this file) sends the first message to the server (node_helper.js)
+		this.sendSocketNotification('INIT');
 
 	},
 
@@ -58,65 +46,38 @@ Module.register('MMM-Gestures', {
 		this.sendNotification('GESTURE', {gesture:payload});
 
 		// interact with compliments module upon PRESENT and AWAY gesture
-		var complimentModules = MM.getModules().withClass('compliments');
-
-		if(complimentModules && complimentModules.length == 1){
-
-			var compliment = complimentModules[0];
-
-			if(payload == 'PRESENT'){
-
-				Log.info('Showing compliment after having received PRESENT gesture.');
-				compliment.show();
-
-			} else if(payload == 'AWAY'){
-
-				Log.info('Hiding compliment after having received AWAY gesture.');
-				compliment.hide();
-
-			} else if(payload == 'FAR'){
-
-				Log.info('Reloading page after having received FAR gesture.');
-				location.reload();
-
-			} else if(payload == 'NEAR'){
-
-				Log.info('Showing next page after having received NEAR gesture.');
-				this.sendNotification("PAGE_INCREMENT");
-
-			} else {
-
-				Log.info('Not handling received gesture in this module directly:');
-				Log.info(payload);
-
-			}
-		}
-
-		// interact with newsfeed module upon UP, DOWN, LEFT, RIGHT gesture
-		var newsfeedModules = MM.getModules().withClass('newsfeed');
-
-		if(newsfeedModules){
-
+		var pagesModule = MM.getModules().withClass('MMM-pages');
+		var pageNumberModule = MM.getModules().withClass('MMM-page-indicator');
+		if(pagesModule && pageNumberModule) {
 			var notification = "UNKNOWN";
-
-			// reverting orders since sensor is usually built in upside down
-			if(payload == 'LEFT'){
-				notification = "ARTICLE_NEXT";
-			} else if(payload == 'RIGHT'){
-				notification = "ARTICLE_PREVIOUS";
-			} else if(payload == 'UP'){
-				notification = "ARTICLE_LESS_DETAILS";
-			} else if(payload == 'DOWN'){
-				notification = "ARTICLE_MORE_DETAILS";
+			if (payload == 'LEFT') {
+				Log.info('Incrementinging page after having received LEFT gesture.');
+				notification = "PAGE_INCREMENT";
+				if (this.pageNumber > 0) {
+					this.pageNumber--;
+				} else {
+					this.pageNumber = this.maxPageNumber;
+				}
+			} else if (payload == 'RIGHT') {
+				Log.info('Decrementing page after having received RIGHT gesture.');
+				notification = "PAGE_DECREMENT";
+				if (this.pageNumber < this.maxPageNumber) {
+					this.pageNumber++;
+				} else {
+					this.pageNumber = 0;
+				}
 			} else {
 				Log.info('Not handling received gesture in this module directly:');
 				Log.info(payload);
 			}
-
 			// forward gesture to other modules
 			Log.info('Sending notification: ' + notification + '.');
 			this.sendNotification(notification);
-
+			// update page number
+			Log.info('Updating page number to: ' + this.pageNumber + '.');
+			this.sendNotification('PAGE_CHANGED', this.pageNumber);
+		} else {
+			Log.info('No pages module found, not handling gesture.');
 		}
 
 	},
