@@ -62,8 +62,8 @@ DistanceGP2Y0A21YK distanceSensor;
 // gesture sensor
 SparkFun_APDS9960 gestureSensor = SparkFun_APDS9960();
 
-// distance is calculated on a running median using the last 8 values
-RunningMedian distanceMedian = RunningMedian(48);
+// distance is calculated on a running median using the last 24 values
+RunningMedian distanceMedian = RunningMedian(24);
 
 // CONSTANTS
 
@@ -150,7 +150,7 @@ void activateGestureSensorAndReportMirrorUse()
   Serial.println(F("Person: PRESENT"));
   if (gestureSensor.enableGestureSensor(true))
   {
-    gestureSensor.setLEDDrive(LED_DRIVE_50MA);
+    // gestureSensor.setLEDDrive(LED_DRIVE_50MA);
     gestureSensor.setGestureGain(GGAIN_1X);
     Serial.println(F("INFO: Gesture sensor is now running"));
   }

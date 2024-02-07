@@ -25,8 +25,8 @@ module.exports = NodeHelper.create({
 		// handler for timeout function, used to clear timer when display goes off
 		this.turnOffTimer = undefined;
 
-		// put monitor to sleep after 1 minute without gesture or distance events
-		this.WAIT_UNTIL_SLEEP = 1 * 60 * 1000;
+		// put monitor to sleep after 2 minute without gesture or distance events
+		this.WAIT_UNTIL_SLEEP = 2 * 60 * 1000;
 		this.reconnectionAttempts = 0;
 		this.init();
 	},
