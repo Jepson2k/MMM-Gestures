@@ -74,9 +74,9 @@ RunningMedian distanceMedian = RunningMedian(24);
 // the higher the value (voltage), the closer one is to the mirror
 
 // standing in front / in use: from about 60cm to 5cm
-int inUseThreshold = 100; // 100/1023 * 5V = 0.5 => (less than 5cm or) less than 60cm
+int inUseThreshold = 120; // 100/1023 * 5V = 0.5 => (less than 5cm or) less than 60cm
 // away / idle: more than about 80cm away
-int awayThreshold = 80; // 80/1023 * 5V = 0.4V => (less than 2cm or) more than 80cm
+int awayThreshold = 120; // 80/1023 * 5V = 0.4V => (less than 2cm or) more than 80cm
 
 // STATE
 
@@ -115,6 +115,7 @@ void setup()
 // main loop that is called repeatedly after setup
 void loop()
 {
+  //Serial.println(distanceMedian.getMedian());
   // enable gesture sensor if distance sensor shows someone in front of the mirror (distance > 100)
   if (!inUse && distanceMedian.getMedian() > inUseThreshold)
   {
